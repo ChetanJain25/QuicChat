@@ -203,6 +203,27 @@
             }
         });
 
+        // --- NEW: Notification Logic ---
+        // 1. Ask for permission when the app loads
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
+
+        function showNotification(username, text) {
+            // Only show notification if the tab is not active
+            if (document.hidden) {
+                const notification = new Notification(username, {
+                    body: text,
+                    icon: 'https://i.ibb.co/68c8xR7/quicchat-icon.png' // A generic icon
+                });
+
+                // When notification is clicked, focus the chat window
+                notification.onclick = () => {
+                    window.focus();
+                };
+            }
+        }
+
         function generateColorForUser(username) {
             let hash = 0;
             for (let i = 0; i < username.length; i++) {
@@ -225,7 +246,12 @@
                 
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added") {
-                        displayMessage(change.doc.id, change.doc.data());
+                        const message = change.doc.data();
+                        displayMessage(change.doc.id, message);
+                        // 2. Trigger notification for new messages from others
+                        if (message.username !== username) {
+                            showNotification(message.username, message.text);
+                        }
                     }
                     if (change.type === "modified") {
                         updateMessage(change.doc.id, change.doc.data());
@@ -306,7 +332,6 @@
 
         messagesDiv.addEventListener('contextmenu', (e) => {
             const messageElement = e.target.closest('.my-message');
-            // --- THIS LINE WAS FIXED ---
             if (!messageElement) return;
 
             e.preventDefault();
